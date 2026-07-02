@@ -93,6 +93,18 @@
   .ai-body{font-size:15.5px;white-space:pre-line;}
   .ai-body.loading{color:var(--muted);font-style:italic;}
   .sec-h{font-size:13px;font-weight:700;color:var(--gd);text-transform:uppercase;letter-spacing:.05em;margin:20px 0 8px;}
+  .patterns-h{font-size:13px;font-weight:800;color:var(--ink);text-transform:uppercase;letter-spacing:.05em;margin:22px 0 4px;padding-top:16px;border-top:2px solid var(--line);}
+  .patterns-sub{font-size:13.5px;color:var(--muted);margin:0 0 12px;}
+  .tabs{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 14px;}
+  .tab{background:var(--soft);border:1.5px solid var(--line);border-radius:999px;padding:8px 15px;font-size:13.5px;font-weight:700;color:var(--gd);cursor:pointer;font-family:inherit;transition:background .1s,border-color .1s,color .1s;}
+  .tab:hover{background:#e6f1ea;border-color:var(--g);}
+  .tab.active{background:var(--g);color:#fff;border-color:var(--gd);}
+  .tab .pct{font-weight:800;opacity:.75;margin-left:6px;font-size:12.5px;}
+  .tab-thesis{font-size:16px;color:var(--gd);font-weight:700;margin:0 0 10px;}
+  .tab-def{font-size:15.5px;margin:0 0 12px;}
+  .attrs{margin:0 0 16px;padding:0;list-style:none;}
+  .attrs li{position:relative;padding:0 0 0 20px;margin:0 0 7px;font-size:14.5px;}
+  .attrs li:before{content:"";position:absolute;left:2px;top:8px;width:7px;height:7px;border-radius:50%;background:var(--g);}
   .body p{margin:0 0 14px;font-size:15.5px;}
   .body ul{margin:0 0 8px;padding-left:20px;}
   .body li{margin-bottom:6px;font-size:15px;}
@@ -152,6 +164,12 @@
     <div class="ai" id="ai" hidden>
       <div class="ai-head">A personalised read on your pattern</div>
       <div class="ai-body" id="ai-body"></div>
+    </div>
+    <div id="r-patterns" hidden>
+      <div class="patterns-h">Explore your top patterns</div>
+      <p class="patterns-sub" id="r-patterns-sub"></p>
+      <div class="tabs" id="r-tabs" role="tablist"></div>
+      <div class="body" id="r-panel"></div>
     </div>
     <div class="body" id="r-body"></div>
     <div class="cta">
@@ -305,6 +323,13 @@
     return best;
   }
   var ARCH={ SP:"sprinter", SS:"shape-shifter", DC:"day-cycler", LP:"life-pivoter" };
+  // Per-pattern definition + hallmark signs, shown at the top of each results tab.
+  var ARCHX={
+    "sprinter":{def:"The Sprinter is someone whose friction lives in task-to-task switching. You pivot fast and get a lot done on paper, but every switch leaves residue: a slice of attention stays behind with the last task, and by late afternoon the residue is most of what you are carrying.",attrs:["Rapid pivots between tasks, tabs, and pings all day","Deep work keeps getting sliced into small fragments","End-of-day fatigue that outweighs what actually got done","Rarely blocked by a switch, but always taxed by it"]},
+    "shape-shifter":{def:"The Shape-Shifter is someone whose friction lives between roles. Worker, parent, partner, friend: each mode asks for a different version of you, and the change-over is where the energy bleeds. The roles themselves are fine; the costume changes are the cost.",attrs:["Wearing several distinct hats in a normal week","Still mentally at work an hour after walking in the door","Different roles pulling on you at the same moment","The hardest part of the day is the hand-off between modes"]},
+    "day-cycler":{def:"The Day-Cycler is someone whose friction lives at the seams of the day: getting started in the morning, shifting into and out of work, winding down at night. Mid-flow you are fine; it is the day's built-in boundary crossings that grind.",attrs:["Slow, effortful starts in the morning","Hard time shifting into work mode, then out of it again","Evenings that will not wind down, or a brain that will not shut off","Fine mid-task; the openings and closings are the struggle"]},
+    "life-pivoter":{def:"The Life-Pivoter is someone in, or recovering from, a life-scale change: a move, a new role, a relationship shift, a loss. Your brain is doing heavy background work to rebuild its map, and everyday transitions feel harder because so much capacity is already spoken for.",attrs:["A major life change in the recent past, or underway now","Everyday switches feel heavier than they used to","Longer adjustment time than a change 'should' take","Old routines have not fully re-formed yet"]}
+  };
 
   function finish(){
     var pct=dimPercents(), top=topDim(pct), topPct=pct[top];
@@ -333,13 +358,60 @@
         '<div class="bartrack"><div class="barfill" style="width:'+p+'%;background:'+color+'"></div></div>';
       bars.appendChild(row);
     });
-    var html=o.look.map(function(t){return "<p>"+fill(t)+"</p>";}).join("");
+    if(LAST.balanced){
+      // Balanced path keeps its single write-up (it is the only outcome using {LEAN}); no tabs.
+      $("r-patterns").hidden=true;
+      var html=o.look.map(function(t){return "<p>"+fill(t)+"</p>";}).join("");
+      if(o.strengths&&o.strengths.length){ html+='<div class="sec-h">Strengths that come with this pattern</div><ul>'+o.strengths.map(function(t){return "<li>"+fill(t)+"</li>";}).join("")+'</ul>'; }
+      if(o.friction&&o.friction.length){ html+='<div class="sec-h">Where the friction shows up</div><ul>'+o.friction.map(function(t){return "<li>"+t+"</li>";}).join("")+'</ul>'; }
+      if(o.practices&&o.practices.length){ html+='<div class="sec-h">Practices to explore</div><ul>'+o.practices.map(function(t){return "<li>"+fill(t)+"</li>";}).join("")+'</ul>'; }
+      $("r-body").innerHTML=html;
+    } else {
+      // Archetype path: full write-ups live in the tabs for the top three dimensions.
+      $("r-sub").textContent="";
+      $("r-body").innerHTML="";
+      $("r-patterns").hidden=false;
+      buildPatternTabs();
+    }
+    var bk=$("r-book"); bk.href=BOOKING_URL;
+    bk.addEventListener("click",function(){ track("cta_click",{location:"results"}); if(window.fbq) fbq("trackCustom","BookingClick"); });
+  }
+
+  // Top-3 transition patterns as clickable tabs; each panel is a full, self-contained description.
+  function topThreeDims(){
+    return ["SP","SS","DC","LP"].map(function(d){ return {d:d, pct:LAST.pct[d]}; })
+      .sort(function(a,b){ return b.pct-a.pct || TIEBREAK.indexOf(a.d)-TIEBREAK.indexOf(b.d); })
+      .filter(function(o){ return o.d===LAST.top || o.pct>0; })
+      .slice(0,3);
+  }
+  function buildPatternTabs(){
+    var top=topThreeDims(); var tabs=$("r-tabs"); tabs.innerHTML="";
+    var sub=$("r-patterns-sub"); if(sub) sub.textContent=(top.length>1)?"Most people are a mix. Tap through your top patterns to read each one.":"";
+    top.forEach(function(o,k){
+      var slug=ARCH[o.d];
+      var b=document.createElement("button"); b.type="button"; b.className="tab"+(k===0?" active":"");
+      b.setAttribute("role","tab"); b.setAttribute("aria-selected",k===0?"true":"false");
+      b.innerHTML=OUTCOMES[slug].name+'<span class="pct">'+o.pct+'%</span>';
+      b.addEventListener("click",function(){ selectPattern(o.d,b); track("pattern_tab",{archetype:slug}); });
+      tabs.appendChild(b);
+    });
+    if(top.length) selectPattern(top[0].d, tabs.firstChild);
+  }
+  function selectPattern(d,btn){
+    var kids=$("r-tabs").children;
+    [].forEach.call(kids,function(c){ c.classList.remove("active"); c.setAttribute("aria-selected","false"); });
+    if(btn){ btn.classList.add("active"); btn.setAttribute("aria-selected","true"); }
+    var slug=ARCH[d], o=OUTCOMES[slug], x=ARCHX[slug];
+    var html="";
+    if(o.tagline) html+='<p class="tab-thesis">'+fill(o.tagline)+'</p>';
+    if(x && x.def) html+='<p class="tab-def">'+x.def+'</p>';
+    if(x && x.attrs && x.attrs.length){ html+='<div class="sec-h">Common signs</div><ul class="attrs">';
+      x.attrs.forEach(function(at){ html+='<li>'+at+'</li>'; }); html+='</ul>'; }
+    html+=o.look.map(function(t){return "<p>"+fill(t)+"</p>";}).join("");
     if(o.strengths&&o.strengths.length){ html+='<div class="sec-h">Strengths that come with this pattern</div><ul>'+o.strengths.map(function(t){return "<li>"+fill(t)+"</li>";}).join("")+'</ul>'; }
     if(o.friction&&o.friction.length){ html+='<div class="sec-h">Where the friction shows up</div><ul>'+o.friction.map(function(t){return "<li>"+t+"</li>";}).join("")+'</ul>'; }
     if(o.practices&&o.practices.length){ html+='<div class="sec-h">Practices to explore</div><ul>'+o.practices.map(function(t){return "<li>"+fill(t)+"</li>";}).join("")+'</ul>'; }
-    $("r-body").innerHTML=html;
-    var bk=$("r-book"); bk.href=BOOKING_URL;
-    bk.addEventListener("click",function(){ track("cta_click",{location:"results"}); if(window.fbq) fbq("trackCustom","BookingClick"); });
+    $("r-panel").innerHTML=html;
   }
 
   function emailValid(v){ return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v); }
