@@ -136,7 +136,7 @@
     <p class="lead">Your transitions profile is ready. Add your details and we will show it now, plus a short series of practical tools for your pattern. No spam, unsubscribe anytime.</p>
     <input id="g-name" class="input" type="text" placeholder="Your first name" autocomplete="given-name"/>
     <input id="g-email" class="input" type="email" placeholder="Your email address" autocomplete="email" inputmode="email"/>
-    <input id="g-phone" class="input" type="tel" placeholder="Your phone number (optional)" autocomplete="tel" inputmode="tel"/>
+    <input id="g-phone" class="input" type="tel" placeholder="Your phone number" autocomplete="tel" inputmode="tel"/>
     <label class="consent"><input id="g-consent" type="checkbox"/>
       <span>By submitting, I agree to receive my result and a short series of follow up emails from Kaizen Education Services. I can unsubscribe at any time.</span></label>
     <button class="btn btn-block" id="g-go" disabled>Show my results</button>
@@ -343,10 +343,10 @@
   }
 
   function emailValid(v){ return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v); }
-  function gateState(){ $("g-go").disabled=!(emailValid(($("g-email").value||"").trim()) && $("g-consent").checked); }
+  function gateState(){ $("g-go").disabled=!(emailValid(($("g-email").value||"").trim()) && (String(($("g-phone")&&$("g-phone").value)||"").replace(/\D/g,"").length>=7) && $("g-consent").checked); }
   function submitLead(){
     var email=($("g-email").value||"").trim(), firstName=($("g-name").value||"").trim(), phone=(($("g-phone")&&$("g-phone").value)||"").trim();
-    if(!emailValid(email)||!$("g-consent").checked){ var e=$("g-err"); e.hidden=false; e.textContent="Please enter a valid email and check the box."; return; }
+    if(!emailValid(email)||phone.replace(/\D/g,"").length<7||!$("g-consent").checked){ var e=$("g-err"); e.hidden=false; e.textContent="Please enter a valid email, a phone number, and check the box."; return; }
     $("g-err").hidden=true; $("g-go").disabled=true; $("g-go").textContent="Loading your results…";
     track("lead_submit",{}); track("quiz_complete",{outcome:LAST.slug}); track("outcome",{outcome:LAST.slug});
     if(window.fbq) fbq("track","Lead");
@@ -367,6 +367,7 @@
     $("start").addEventListener("click",start);
     $("q-back").addEventListener("click",back);
     $("g-email").addEventListener("input",gateState);
+    $("g-phone").addEventListener("input",gateState);
     $("g-consent").addEventListener("change",gateState);
     $("g-go").addEventListener("click",submitLead);
     $("g-email").addEventListener("keydown",function(e){ if(e.key==="Enter"&&!$("g-go").disabled) submitLead(); });
