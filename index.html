@@ -36,7 +36,7 @@
 
 <style>
   :root{--g:#2f8f5b;--gd:#246c45;--ink:#243027;--muted:#6b7a70;--bg:#ffffff;--soft:#f1f6f2;
-    --line:#dde7e0;--warn:#c0563b;--gold:#c98a2b;--red:#c0563b;--radius:16px;}
+    --line:#dde7e0;--warn:#c0563b;--gold:#c98a2b;--red:#c0563b;--orange:#F2673B;--radius:16px;}
   html,body{margin:0;background:#f6f8f6;}
   body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
     color:var(--ink);min-height:100vh;padding:22px 12px 44px;box-sizing:border-box;line-height:1.5;}
@@ -98,8 +98,8 @@
   .body li{margin-bottom:6px;font-size:15px;}
   .cta{background:#0f2a1c;color:#eaf3ee;border-radius:16px;padding:22px 22px;margin:20px 0 0;text-align:center;}
   .cta p{margin:0 0 14px;font-size:15px;}
-  .cta .btn{background:#fff;color:var(--gd);}
-  .cta .btn:hover{background:#eaf3ee;}
+  .cta .btn{background:var(--orange);color:#fff;padding:12px 30px;font-size:15px;}
+  .cta .btn:hover{background:#d9542c;}
   .cta small{display:block;margin-top:12px;color:#a9c3b4;font-size:12.5px;}
   .foot{max-width:640px;margin:20px auto 0;text-align:center;font-size:12px;color:#8a978f;}
   @media(max-width:480px){.card{padding:22px 16px;}h1{font-size:22px;}}
@@ -136,6 +136,7 @@
     <p class="lead">Your transitions profile is ready. Add your details and we will show it now, plus a short series of practical tools for your pattern. No spam, unsubscribe anytime.</p>
     <input id="g-name" class="input" type="text" placeholder="Your first name" autocomplete="given-name"/>
     <input id="g-email" class="input" type="email" placeholder="Your email address" autocomplete="email" inputmode="email"/>
+    <input id="g-phone" class="input" type="tel" placeholder="Your phone number (optional)" autocomplete="tel" inputmode="tel"/>
     <label class="consent"><input id="g-consent" type="checkbox"/>
       <span>By submitting, I agree to receive my result and a short series of follow up emails from Kaizen Education Services. I can unsubscribe at any time.</span></label>
     <button class="btn btn-block" id="g-go" disabled>Show my results</button>
@@ -156,7 +157,6 @@
     <div class="cta">
       <p>Want help working with your pattern instead of against it? Book a free 30 minute coaching consult. We will look at your full profile, hear what is going on, and tell you honestly whether we think we are a fit.</p>
       <a class="btn" id="r-book" href="#" target="_blank" rel="noopener">Explore Coaching</a>
-      <small>Calgary: in person is available. Everyone else, we coach virtually. Prefer to start with reading? Watch your inbox for practical tools you can use this week.</small>
     </div>
     <button class="btn btn-ghost btn-block" id="r-retake" style="margin-top:16px">Take it again</button>
     <p class="disc">This is an educational self-reflection tool, not a diagnosis or clinical assessment. If you are in distress or crisis, please reach out for support, and in Canada or the US you can call or text 988 for the Suicide and Crisis Lifeline.</p>
@@ -345,7 +345,7 @@
   function emailValid(v){ return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v); }
   function gateState(){ $("g-go").disabled=!(emailValid(($("g-email").value||"").trim()) && $("g-consent").checked); }
   function submitLead(){
-    var email=($("g-email").value||"").trim(), firstName=($("g-name").value||"").trim();
+    var email=($("g-email").value||"").trim(), firstName=($("g-name").value||"").trim(), phone=(($("g-phone")&&$("g-phone").value)||"").trim();
     if(!emailValid(email)||!$("g-consent").checked){ var e=$("g-err"); e.hidden=false; e.textContent="Please enter a valid email and check the box."; return; }
     $("g-err").hidden=true; $("g-go").disabled=true; $("g-go").textContent="Loading your results…";
     track("lead_submit",{}); track("quiz_complete",{outcome:LAST.slug}); track("outcome",{outcome:LAST.slug});
@@ -354,7 +354,7 @@
     if(AI_ENABLED){ $("ai").hidden=false; var b=$("ai-body"); b.className="ai-body loading"; b.textContent="Writing a personalised read for you…"; }
     if(LEAD_ENDPOINT){
       fetch(LEAD_ENDPOINT,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({
-        firstName:firstName, email:email, consent:true, audience:"transitions",
+        firstName:firstName, email:email, phone:phone, consent:true, audience:"transitions",
         archetype:LAST.slug, archetypeName:LAST.name, balanced:LAST.balanced, lean:LAST.lean,
         dimensions:LAST.pct, focus:LAST.focus, readiness:LAST.readiness, attribution:ATTRIBUTION
       })}).then(function(r){return r.json();}).then(function(r){
